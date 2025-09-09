@@ -2,7 +2,7 @@ import pandas as pd
 
 
 path = "C:\\Users\\newjo\\Downloads\\CM_results_internal.xlsx"
-CMdeals = pd.read_excel(path, sheet_name="CM", usecols='A:N')
+CMdeals = pd.read_excel(path, sheet_name="CM", usecols='A:AL')
 
 # drop rows where Status is NA, these are deals under review
 CMdeals_drop = CMdeals.dropna(subset=["Repayment status", "Date"], how='any')
@@ -25,8 +25,10 @@ def country_stat(country, data):
             Issue_Count=("Repayment status", lambda x: (~x.isin(exclude_status)).sum()),  # New column
             Funded_USD_Amount=("USD Amount",
                                lambda x: x[data_country.loc[x.index, "Repayment status"] != 'Not Funded'].sum()),
-            Repayment_Issue_Amount=("USD Amount",
+            Repayment_Issue_Notional=("USD Amount",
                                     lambda x: x[~data_country.loc[x.index, "Repayment status"].isin(
+                                        exclude_status)].sum()),
+            Actual_Loss = ("Actual Loss (USD)", lambda x: x[~data_country.loc[x.index, "Repayment status"].isin(
                                         exclude_status)].sum())
         )
         .reset_index()
@@ -35,7 +37,7 @@ def country_stat(country, data):
 
     # Calculate Default Rate
     stats['Default_Rate'] = stats.apply(
-        lambda row: row['Repayment_Issue_Amount'] / row['Funded_USD_Amount']
+        lambda row: row['Actual_Loss'] / row['Funded_USD_Amount']
         if row['Funded_USD_Amount'] != 0 else 0,
         axis=1
     )
@@ -54,7 +56,7 @@ stat_AU = country_stat('AU', data)
 stat_MY = country_stat('MY', data)
 print("SG2: ", stat_SG)
 
-output_path = "C:\\Users\\newjo\\Downloads\\stats2.xlsx"
+output_path = "C:\\Users\\newjo\\Downloads\\stats3.xlsx"
 with pd.ExcelWriter(output_path) as writer:
     data.to_excel(writer, sheet_name='Data')
     stat_SG.to_excel(writer, sheet_name='stat_SG')
