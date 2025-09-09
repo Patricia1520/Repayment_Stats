@@ -44,7 +44,7 @@ def country_stat(country, data):
 
     # Reorder columns if needed (optional)
     column_order = ['Month', 'Submission_Count', 'Funded_Count', 'Issue_Count', 'Funded_USD_Amount',
-                    'Repayment_Issue_Amount', 'Default_Rate']
+                    'Repayment_Issue_Notional', 'Actual_Loss', 'Default_Rate']
     stats = stats[column_order]
 
     return stats
