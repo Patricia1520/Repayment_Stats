@@ -49,17 +49,47 @@ def country_stat(country, data):
 
     return stats
 
+def aggregate_default():
+
+    exclude_status = ['Not Funded', 'Completed', 'ongoing']
+
+    stats= (data.groupby('Month')
+        .agg(
+            Submission_Count=('Date', 'size'),
+            Funded_Count=("Repayment status", lambda x: (x != 'Not Funded').sum()),
+            Issue_Count=("Repayment status", lambda x: (~x.isin(exclude_status)).sum()),  # New column
+            Funded_USD_Amount=("USD Amount",
+                               lambda x: x[data.loc[x.index, "Repayment status"] != 'Not Funded'].sum()),
+            Repayment_Issue_Notional=("USD Amount",
+                                      lambda x: x[~data.loc[x.index, "Repayment status"].isin(
+                                          exclude_status)].sum()),
+            Actual_Loss=("Actual Loss (USD)", lambda x: x[~data.loc[x.index, "Repayment status"].isin(
+                exclude_status)].sum())
+        )
+        .reset_index()
+        .sort_values('Month')
+    )
+
+    stats['Default_Rate'] = stats.apply(
+        lambda row: row['Actual_Loss'] / row['Funded_USD_Amount']
+        if row['Funded_USD_Amount'] != 0 else 0,
+        axis=1
+        )
+
+    return stats
+
 
 stat_SG = country_stat('SG', data)
 stat_HK = country_stat('HK', data)
 stat_AU = country_stat('AU', data)
 stat_MY = country_stat('MY', data)
-print("SG2: ", stat_SG)
+stat_Agg = aggregate_default(data)
 
-output_path = "C:\\Users\\newjo\\Downloads\\stats3.xlsx"
+output_path = "C:\\Users\\newjo\\Downloads\\stats5.xlsx"
 with pd.ExcelWriter(output_path) as writer:
     data.to_excel(writer, sheet_name='Data')
     stat_SG.to_excel(writer, sheet_name='stat_SG')
     stat_HK.to_excel(writer, sheet_name='stat_HK')
     stat_AU.to_excel(writer, sheet_name='stat_AU')
     stat_MY.to_excel(writer, sheet_name='stat_MY')
+    stat_Agg.to_excel(writer, sheet_name='Aggregate')
